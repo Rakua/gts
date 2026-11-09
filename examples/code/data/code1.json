@@ -1,0 +1,24 @@
+{
+    "fxDescription": "Collatz",
+    "initLine": {
+        "content": "const str = 'this is from code1.json'",
+        "indentLevel": [null]
+    },
+    "multipleLines": {
+        "indentLevel": [null,null],
+        "lines": [
+            {
+                "content": "if(x % 2 == 0)",
+                "indentLevel": []
+            },
+            {
+                "content": "return f(x/2)",
+                "indentLevel": [null]
+            },
+            {
+                "content": "return f(3*x+1)",
+                "indentLevel": []
+            }
+        ]
+    }
+}

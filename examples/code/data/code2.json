@@ -1,0 +1,10 @@
+{
+    "initLine": {
+        "content": "const str = 'this is from code2.json'",
+        "indentLevel": [null]
+    },
+    "multipleLines": {      
+        "indentLevel": [null,null],  
+        "lines": []
+    }
+}

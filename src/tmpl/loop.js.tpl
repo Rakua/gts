@@ -1,0 +1,1 @@
+defaultVal(data(«json path»,«raw tags/0/position»,1).map((x_,i) => tmpl0(«json children/0/tmplName»+"/"+«raw children/0/position»,tmplData,preferred,curPath.concat(«json path»,i))),«cd children/2»«tpl expression»«/cd»).join(«cd children/1»«tpl expression»«/cd»)

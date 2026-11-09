@@ -1,0 +1,8 @@
+
+$1 = ${JSON.stringify(ptn.children[0].tmplName + "/" + ptn.children[0].position)}
+$1 = «json children/0/tmplName» + "/" + «raw children/0/position»
+
+$2 = ${JSON.stringify(ptn.path)}
+$2 = «json path»
+
+tmpl0(${JSON.stringify(ptn.children[0].tmplName + "/" + ptn.children[0].position)}, tmplData, preferred, curPath.concat(${JSON.stringify(ptn.path)}))

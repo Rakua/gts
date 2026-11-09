@@ -1,0 +1,5 @@
+.vscode/
+dist/
+todo.md
+*.bak
+**/node_modules

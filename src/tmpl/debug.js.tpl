@@ -1,0 +1,1 @@
+    console.debug("[DBG]","tmpl0",tmplNameWithPos,curPath)

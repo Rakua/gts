@@ -1,0 +1,37 @@
+{
+    "varTmpl": "a.html",
+    "label": "Root Node",
+    "children": [
+        {
+            "label": "Child A",
+            "children": []
+        },
+        {
+            "label": "Child B",
+            "children": [
+                {
+                    "label": "Child B.1",
+                    "children": []
+                },
+                {
+                    "label": "Child B.2",
+                    "children": []
+                }
+            ]
+        },
+        {
+            "label": "Child C",
+            "children": [
+                {
+                    "label": "Child C.1",
+                    "children": [
+                        {
+                            "label": "Child C.1.1",
+                            "children": []
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

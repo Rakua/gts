@@ -1,0 +1,7 @@
+${kc} = «json path»
+${ptn.tags[0].position} = «raw tags/0/position»
+${JSON.stringify(tmplName + "/" + ptn.children[0].position)} = «json children/0/tmplName»+"/"+«raw children/0/position»
+${sep} = «cd children/1»«tpl expression»«/cd»
+${empty} = «cd children/2»«tpl expression»«/cd»
+
+defaultVal(data(${kc},${ptn.tags[0].position},1).map((x_,i) => tmpl0(${JSON.stringify(tmplName + "/" + ptn.children[0].position)},tmplData,preferred,curPath.concat(${kc},i))),${empty}).join(${sep})
