@@ -1,0 +1,7 @@
+{
+    "varTemplates": {
+        "tmplPath": "sub/v2.md",
+        "tmplDir": "dir2",
+        "subDir": "sub/"
+    }
+}

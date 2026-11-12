@@ -1,0 +1,1 @@
+Contents of `tmpl/sub/dir1/tmpl.md`

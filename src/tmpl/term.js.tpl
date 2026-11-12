@@ -9,7 +9,7 @@ transformVal(«json path»,«val tag/position»,x=>JSON.stringify(x))
 «elseif type == "tpl"»
 tmpl0(«json tag/args/0»+"/0", tmplData, preferred, curPath)
 «elseif type == "vtpl"»
-tmpl0(vtpl(«json path»,«val tag/position»), tmplData, preferred, curPath)
+tmpl0(vtpl(«json vtplPath»,«val tag/position»), tmplData, preferred, curPath)
 «elseif type == "tsd"»
 tsd
 «elseif type == "ted"»
@@ -20,6 +20,8 @@ ted
 «tpl loop»
 «elseif type == "cd"»
 «tpl cd»
+«elseif type == "vcd"»
+«tpl vcd»
 «else»
 ''«/*»applies to comment and trim tags«*/»
 «/if»

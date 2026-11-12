@@ -1,4 +1,4 @@
-import * as d from './data'
+import * as d from './data.js'
 
 let tagStart = d.defaults.tagStart
 let tagEnd = d.defaults.tagEnd
@@ -59,7 +59,7 @@ export class TooManyArgsError extends Error {
         super(`Too many arguments in ${tagToString(tag)} (expected ${expected}, got ${tag.args.length})`)
         this.name = "TooManyArgsError"
         this.tag = tag
-    }    
+    }
 
 }
 
@@ -108,7 +108,7 @@ export class SyntaxIllegalTagNameError extends Error {
     pos: number
 
     constructor(tagName: string, pos: number) {
-        super(`Illegal tag name '${tagName}' at position ${pos}`)
+        super(`Illegal tag name '${tagName}' at offset ${pos}`)
         this.name = "SyntaxIllegalTagNameError"
         this.tagName = tagName
         this.pos = pos
@@ -119,7 +119,7 @@ export class SyntaxEmptyTagError extends Error {
     pos: number
 
     constructor(pos: number) {
-        super(`Empty tag at position ${pos}`)
+        super(`Empty tag at offset ${pos}`)
         this.name = "SyntaxEmptyTagError"
         this.pos = pos
     }
@@ -129,7 +129,7 @@ export class SyntaxUnexpectedTagEndError extends Error {
     pos: number
 
     constructor(pos: number) {
-        super(`Unexpected tag end delimiter '${tagEnd}' at position ${pos}`)
+        super(`Unexpected tag end delimiter '${tagEnd}' at offset ${pos}`)
         this.name = "SyntaxUnexpectedTagEndError"
         this.pos = pos
     }
@@ -139,7 +139,7 @@ export class SyntaxUnexpectedTagStartError extends Error {
     pos: number
 
     constructor(pos: number) {
-        super(`Unexpected tag start delimiter '${tagStart}' at position ${pos}`)
+        super(`Unexpected tag start delimiter '${tagStart}' at offset ${pos}`)
         this.name = "SyntaxUnexpectedTagStartError"
         this.pos = pos
     }
@@ -149,7 +149,7 @@ export class SyntaxUnclosedTagError extends Error {
     pos: number
 
     constructor(pos: number) {
-        super(`Tag starting at position ${pos} lacks closing delimiter '${tagEnd}'`)
+        super(`Tag starting at offset ${pos} lacks closing delimiter '${tagEnd}'`)
         this.name = "SyntaxUnclosedTagError"
         this.pos = pos
     }
@@ -161,5 +161,5 @@ export function setTagDelimiters(tagStart_: string, tagEnd_: string) {
 }
 
 function tagToString(tag: d.Tag) {
-    return tagStart + tag.contents + tagEnd + " at position " + tag.position
+    return tagStart + tag.contents + tagEnd + " at offset " + tag.position
 }

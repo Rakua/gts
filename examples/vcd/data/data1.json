@@ -1,0 +1,20 @@
+{
+    "$TMPL_NAME": "this will be overwritten because it is a reserved variable",
+    "animal": {
+        "dog": {
+            "type": "mammal",
+            "legs": 4
+        },
+        "goldfish": {
+            "type": "fish",
+            "legs": 0
+        },
+        "sparrow": {
+            "type": "bird",
+            "legs": 2
+        }
+    },
+    "selectedAnimal": ["dog"],
+    "dataPath": [null,"animal","sparrow","type"],
+    "//comment": "Values used in «vcd» must be arrays. Each array element is a path component."
+}

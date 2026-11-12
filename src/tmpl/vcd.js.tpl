@@ -1,0 +1,1 @@
+tmpl0(«json children/0/tmplName» + "/" + «raw children/0/position», tmplData, preferred, curPath.concat(data(«json path»,«val tags/0/position»,1)))

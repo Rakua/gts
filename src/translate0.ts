@@ -1,6 +1,6 @@
 export { translate }
 
-import * as d from './data'
+import * as d from './data.js'
 
 
 function translate(tplTmplStr: string, tmplData: d.TemplateData): string {

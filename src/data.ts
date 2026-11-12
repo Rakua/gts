@@ -1,10 +1,10 @@
 export {
-    CliArguments, FileMap,
+    CliArgumentsTmpl, FileMap,
     TemplateData,
     Token, Tag, SingleTag, ComplexTag,
     ParseTree, ParseTreeNode, ParseTreeNodeLiteral, ParseTreeNodeSingleTag, ParseTreeNodeComplexTag,
     ParseTreeIfData, ParseTreeIfDataComparison, ParseTreeIfDataElseBranch, ParseTreeIfDataIfBranch as ParseTreeIfDataNonElseBranch,
-    DataPath,
+    DataPath, VtplPath,
     TagName, Flag, ComparisonOperator,
     tagGroups, defaults,
     newParseTreeNodeLiteral, newParseTreeNodeSingleTag, toTagName, toComparisonOperator,
@@ -13,7 +13,7 @@ export {
 
 /* Types */
 
-type CliArguments = {
+type CliArgumentsTmpl = {
     dir: string,
     exts: string[],
     out: string,
@@ -21,9 +21,11 @@ type CliArguments = {
     tagEnd: string,
     flags: string
 }
+
 type FileMap = { [index: string]: string }
 type TemplateData = {
     templates: ParseTree[],
+    tmplNames: string[],
     tagStartDelimiter: string,
     tagEndDelimiter: string,
     compileDate: string,
@@ -41,7 +43,7 @@ type Tag = {
     contents: string //as it occurs in source; without tag delimiters
 }
 type SingleTag = TagName.Val | TagName.Raw | TagName.Json | TagName.Tpl | TagName.Vtpl | TagName.Trim | TagName.Tsd | TagName.Ted
-type ComplexTag = TagName.If | TagName.Loop | TagName.Comment | TagName.Cd
+type ComplexTag = TagName.If | TagName.Loop | TagName.Comment | TagName.Cd | TagName.Vcd
 
 
 type ParseTree = {
@@ -59,6 +61,7 @@ type ParseTreeNodeSingleTag = {
     type: SingleTag
     tag: Tag
     path?: DataPath //used for tags that have key argument
+    vtplPath?: (string | DataPath)[]
 }
 type ParseTreeNodeComplexTag = {
     type: ComplexTag
@@ -82,7 +85,7 @@ type ParseTreeIfDataElseBranch = { type: TagName.Else }
 type ParseTreeIfDataComparison = { operator: ComparisonOperator, literal: string }
 
 type DataPath = (string | number | null)[]
-
+type VtplPath = (string | DataPath)[]
 
 /* Enums */
 
@@ -109,6 +112,8 @@ enum TagName {
 
     Cd = "cd",
     EndCd = "/cd",
+    Vcd = "vcd",
+    EndVcd = "/vcd",
 
     Comment = "/*",
     EndComment = "*/"
@@ -134,16 +139,16 @@ const tagGroups = {
     singleTags: [TagName.Val, TagName.Raw, TagName.Json, TagName.Tpl, TagName.Vtpl, TagName.Trim, TagName.Tsd, TagName.Ted],
     openingTags: [TagName.If, TagName.Loop, TagName.Cd, TagName.Comment],
     midTags: [TagName.ElseIf, TagName.Else, TagName.Sep, TagName.Empty],
-    closingTags: [TagName.EndIf, TagName.EndLoop, TagName.EndCd, TagName.EndComment],
-    singleTagsWithKey: [TagName.Val, TagName.Raw, TagName.Json, TagName.Vtpl],
-    arglessTags: [TagName.Comment, TagName.EndComment, TagName.Else, TagName.EndIf, TagName.Sep, TagName.Empty, TagName.EndCd, TagName.EndLoop, TagName.Trim, TagName.Tsd, TagName.Ted],
-    singleArgTags: [TagName.Val, TagName.Raw, TagName.Json, TagName.Tpl, TagName.Vtpl]
+    closingTags: [TagName.EndIf, TagName.EndLoop, TagName.EndCd, TagName.EndVcd, TagName.EndComment],
+    singleTagsWithKey: [TagName.Val, TagName.Raw, TagName.Json],
+    arglessTags: [TagName.Comment, TagName.EndComment, TagName.Else, TagName.EndIf, TagName.Sep, TagName.Empty, TagName.EndCd, TagName.EndVcd, TagName.EndLoop, TagName.Trim, TagName.Tsd, TagName.Ted],
+    singleArgTags: [TagName.Val, TagName.Raw, TagName.Json, TagName.Tpl]
 }
 
 const defaults = {
     tagStart: "«",
     tagEnd: "»",
-    pathSeparator: "/"    
+    pathSeparator: "/"
 }
 
 
@@ -157,7 +162,7 @@ function newParseTreeNodeLiteral(contents: string): ParseTreeNodeLiteral {
 }
 
 function newParseTreeNodeSingleTag(tag: Tag, path?: DataPath): ParseTreeNodeSingleTag {
-    if (!tagGroups.singleTags.includes(tag.name)) 
+    if (!tagGroups.singleTags.includes(tag.name))
         throw new TypeError("tag must be single tag, got " + tag.name)
 
     return {

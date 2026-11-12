@@ -4,6 +4,9 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 BIN_CMD="#!/bin/bash\nnode $SCRIPT_DIR/dist/main.js \"\$@\"\n"
 
+TAG_START="«"
+TAG_END="»"
+
 cd -- "$SCRIPT_DIR"
 
 echo "Install npm packages"
@@ -26,21 +29,21 @@ fi
 cd ..
 
 echo "Build tmpl0.js using translate0"
-if ! node dist/main.js src/tmpl out=dist/tmpl0.js exts=js.tpl flags=0bp ; then
+if ! node dist/main.js src/tmpl out=dist/tmpl0.js exts=js.tpl flags=0bp "tagStart=$TAG_START" "tagEnd=$TAG_END" ; then
     echo "Building tmpl0.js failed"
     exit 1
 fi
 cp dist/tmpl0.js dist/tmpl.js
 
 echo "Build tmpl1.js with tmpl0.js"
-if ! node dist/main.js src/tmpl out=dist/tmpl1.js exts=js.tpl flags=b ; then
+if ! node dist/main.js src/tmpl out=dist/tmpl1.js exts=js.tpl flags=b "tagStart=$TAG_START" "tagEnd=$TAG_END" ; then
     echo "Building tmpl1.js failed"
     exit 1
 fi
 cp dist/tmpl1.js dist/tmpl.js
 
 echo "Build tmpl2.js with tmpl1.js"
-if ! node dist/main.js src/tmpl out=dist/tmpl2.js exts=js.tpl flags=b ; then
+if ! node dist/main.js src/tmpl out=dist/tmpl2.js exts=js.tpl flags=b "tagStart=$TAG_START" "tagEnd=$TAG_END" ; then
     echo "Building tmpl2.js failed"
     exit 1
 fi

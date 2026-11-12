@@ -3,3 +3,4 @@ dist/
 todo.md
 *.bak
 **/node_modules
+examples/0test

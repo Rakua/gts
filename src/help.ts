@@ -1,23 +1,27 @@
-export { shortHelp, longHelp }
+export { shortHelp, longHelp, gendataHelp as genDataHelp }
 
 function shortHelp(version: string): string {
-  return helpCmd.replace(versionPlaceholder,version) + "\n" + helpMore
+  return helpCmd.replace(versionPlaceholder, version) + "\n" + helpMore
 }
 
 function longHelp(version: string): string {
-  return helpCmd.replace(versionPlaceholder,version) + "\n" + helpTags + "\n" + helpDir
+  return helpCmd.replace(versionPlaceholder, version) + "\n" + helpTags + "\n" + helpDir
+}
+
+function gendataHelp(version: string): string {
+  return helpGenData.replace(versionPlaceholder, version) + "\n" + helpGenDataDir
 }
 
 const versionPlaceholder = "$VERSION"
 
-const helpMore = `Type "gts help" for more help.\n`
+const helpMore = `Type "gts help" or "gts gen-data help" for more help.\n`
 
 const helpCmd = `Guillemets Template System $VERSION
 gts $TMPLDIR [exts=$EXTS] [out=$OUT] [flags=$F] [tagStart=$TS] [tagEnd=$TE]
   $TMPLDIR = directory with templates (scanned recursively)
   $EXTS    = template file extensions separated by ',' (default is "html,css")
   $OUT     = output js-file computing the templates (default is "$TMPLDIR/../tmpl.js")
-  $F       = subset of "0bdptv" (see below for meaning) (default is "", i.e. no flag)
+  $F       = subset of "0bdptv" (see below) (default is "", i.e. no flag)
   $TS      = start delimiter of template tag (default is "«")
   $TE      = end delimiter of template tag (default is "»")
 
@@ -28,6 +32,13 @@ Flags
   p        output parse trees to "$OUT.td.json"
   t        include compile date in output file
   v        verbose mode (gts shows parsed arguments)
+
+gts gen-data $DATA_DIR [out=$OUT]
+  Generates a json file from the contents of $DATA_DIR. The default
+  output file is "$DATA_DIR.json" in the same directory as $DATA_DIR.
+
+gts offset $FILE $POS
+  Computes 1-based line and column of the ($POS+1)-th character in $FILE
 `
 
 const helpTags = `Template tags
@@ -64,6 +75,14 @@ const helpTags = `Template tags
   «cd $KEY» $X «/cd»
                     changes current path in tmplData to $KEY within $X
 
+  «vcd $KEY» $X «/vcd»
+                    changes current path in tmplData to the value referenced by
+                    $KEY within $X. The value must be an array containing 
+                    only strings, numbers and null. For example, the key path 
+                    -0/x/-1/y should be [null,"x",-1,"y"]. If the value is not
+                    an array, a TmplDataNotAnArrayError will be thrown at 
+                    runtime.
+
   «/*» $X «*/»      comment: $X is not inserted in the output file
 
   «trim»            removes last line in previous token if it is a string
@@ -81,3 +100,14 @@ Key syntax
 `
 
 const helpDir = `To use a directory named "help" as template directory use "gts ./help"`
+const helpGenDataDir = `To use a directory named "help" as data directory use "gts gen-data ./help"`
+
+const helpGenData = `Guillemets Template System $VERSION
+gts gen-data $DATA_DIR [out=$OUT]
+  Generates a json file from the contents of $DATA_DIR. The default
+  output file is "$DATA_DIR.json" in the same directory as $DATA_DIR.
+  An additional format directory can be used to specify the expected
+  structure of files in the data dir.
+
+  See examples/gen-data for an example.
+`

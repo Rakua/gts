@@ -1,7 +1,8 @@
 export { compile }
 
-import * as d from './data'
-import * as e from './errors'
+import * as d from './data.js'
+import * as e from './errors.js'
+import { applyIf, cut, escapeRegExp, offsetPosition, redText } from './misc.js'
 
 
 function compile(tmplFiles: d.FileMap, tagStart?: string, tagEnd?: string): d.ParseTree[] {
@@ -18,8 +19,22 @@ function compile(tmplFiles: d.FileMap, tagStart?: string, tagEnd?: string): d.Pa
             templates.push(toParseTree(tmplName, tmplFiles[tmplName], tagStart, tagEnd, pathSeparator))
         } catch (err) {
             if (err instanceof Error) {
-                const err1 = new Error(`Failed to parse template ${tmplName}: ${err.message}`, { cause: err })
-                errs.push(err1)
+                const err0 = err as any
+                let pos: null | number = null
+                if (err0.pos !== undefined) {
+                    pos = err0.pos
+                } else if (err0.tag !== undefined) {
+                    pos = err0.tag.position
+                }
+
+                if (pos != null) {
+                    const lc = offsetPosition(tmplFiles[tmplName], pos)
+                    const err1 = new Error(`Failed to parse template ${redText(tmplName, "stderr")} (line ${lc.line}, column: ${lc.column}): ${err.message}`, { cause: err })
+                    errs.push(err1)
+                } else {
+                    const err1 = new Error(`Failed to parse template ${tmplName}: ${err.message}`, { cause: err })
+                    errs.push(err1)
+                }
             }
         }
     }
@@ -36,7 +51,7 @@ function compile(tmplFiles: d.FileMap, tagStart?: string, tagEnd?: string): d.Pa
     return outlinedTemplates
 }
 
-//outline first child parse tree of each loop and cd as if they were separate templates
+//outline first child parse tree of each loop, cd and vcd as if they were separate templates
 function outline(pt: d.ParseTree): d.ParseTree[] {
     const tmplName = pt.tmplName
     const res = [pt]
@@ -47,7 +62,7 @@ function outline(pt: d.ParseTree): d.ParseTree[] {
             //recurse on sep branch
             ptn.children.slice(1).map(c => c.children.map(extractTrees))
         }
-        if (ptn.type == d.TagName.Cd) {
+        if (ptn.type == d.TagName.Cd || ptn.type == d.TagName.Vcd) {
             res.push(ptn.children[0])
         }
         if (ptn.type == d.TagName.If) {
@@ -73,8 +88,9 @@ function calledTemplatesExist(templates: d.ParseTree[]) {
         for (const ptn of t.children) {
             if (ptn.type == d.TagName.Tpl) {
                 const name = ptn.tag.args[0]
-                if (!tmplNames.includes(name))
+                if (!tmplNames.includes(name)) {
                     throw new e.TplDoesNotExistError(ptn.tag, t.tmplName)
+                }
             } else if (d.tagGroups.openingTags.includes(ptn.type as d.TagName)) {
                 const ptn1 = ptn as d.ParseTreeNodeComplexTag
                 ptn1.children.map(check)
@@ -143,18 +159,7 @@ function augment(parseTree: d.ParseTree, pathSeparator: string, ifInfo?: d.Parse
 
             const cop = d.toComparisonOperator(args[1])
             if (cop == null) throw new e.IllegalComparisonOperatorError(tag, args[1])
-            try {
-                let cmpVal = args[2].trim()
-                if (cmpVal[0] == "'" && cmpVal[cmpVal.length - 1] == "'") {
-                    //replace single quotes with double quotes
-                    cmpVal = `"${cmpVal.slice(1, -1)}"`
-                }
-                //JSON.parse(args[2]) //check if literal is syntactically correct
-                JSON.parse(cmpVal) //check if literal is syntactically correct
-                return { operator: cop, literal: args[2] }
-            } catch (err) {
-                throw new e.IllegalLiteralError(tag, args[2], err as Error)
-            }
+            return { operator: cop, literal: parseArgLiteral(args[2], tag, false) }
         }
 
         if (tag.name == d.TagName.Else) {
@@ -415,11 +420,14 @@ function parse(tmplName: string, tokens: d.Token[], pathSeparator: string): d.Pa
         return loopStart()
     }
 
-    const parseCd = function (tokens: d.Token[]): ParseComplexTag {
+    const parseCd = function (tokens: d.Token[], type: "cd" | "vcd"): ParseComplexTag {
         const nextToken: () => d.Tag = () => tokens[0] as d.Tag
 
+        const tagStart = type == "cd" ? d.TagName.Cd : d.TagName.Vcd
+        const tagEnd = type == "cd" ? d.TagName.EndCd : d.TagName.EndVcd
+
         const parseTreeNode: d.ParseTreeNodeComplexTag = {
-            type: d.TagName.Cd,
+            type: tagStart,
             path: keyToDataPath(nextToken().args[0], pathSeparator),
             tags: [],
             children: [],
@@ -437,7 +445,7 @@ function parse(tmplName: string, tokens: d.Token[], pathSeparator: string): d.Pa
                 throw new e.MissingClosingTagError(nextToken())
 
             tokens = prr.remainingTokens
-            if (nextToken().name == d.TagName.EndCd) return cdEnd()
+            if (nextToken().name == tagEnd) return cdEnd()
 
             throw new e.UnexpectedTagError(nextToken())
         }
@@ -482,6 +490,23 @@ function parse(tmplName: string, tokens: d.Token[], pathSeparator: string): d.Pa
         }
 
         if (d.tagGroups.singleTags.includes(nextToken.name)) {
+            if (nextToken.name == d.TagName.Vtpl) {
+                const vtplPath = nextToken.args.map((arg) => {
+                    arg = arg.trim()
+                    if (arg.startsWith('"') || arg.startsWith("'")) {
+                        return parseArgLiteral(arg, nextToken, true)
+                    } else {
+                        return keyToDataPath(arg, pathSeparator)
+                    }
+                })
+                parseTree.children.push({
+                    type: nextToken.name,
+                    tag: nextToken,
+                    vtplPath: vtplPath
+                })
+                return parseRec(parseTree, tokens.slice(1))
+            }
+
             const path = d.tagGroups.singleTagsWithKey.includes(nextToken.name)
                 ? keyToDataPath(nextToken.args[0], pathSeparator) : undefined
 
@@ -502,7 +527,13 @@ function parse(tmplName: string, tokens: d.Token[], pathSeparator: string): d.Pa
         }
 
         if (nextToken.name == d.TagName.Cd) {
-            const res = parseCd(tokens)
+            const res = parseCd(tokens, "cd")
+            parseTree.children.push(res.parseTreeNode)
+            return parseRec(parseTree, res.remainingTokens)
+        }
+
+        if (nextToken.name == d.TagName.Vcd) {
+            const res = parseCd(tokens, "vcd")
             parseTree.children.push(res.parseTreeNode)
             return parseRec(parseTree, res.remainingTokens)
         }
@@ -538,10 +569,13 @@ function keyToDataPath(key: string, pathSeparator: string): d.DataPath {
 function tokenize(contents: string, tagStart: string, tagEnd: string): d.Token[] {
     const tokens: d.Token[] = []
     let pos = 0
+    let commentStartTag: d.Tag | null = null // non-null value indicates that tokenizer is in a comment
+    const inComment = () => commentStartTag != null
     try {
         while (true) {
-            const next = nextTag(contents, tagStart, tagEnd)
+            const next = nextTag(contents, tagStart, tagEnd, inComment())
             if (next == null) {
+                if (inComment()) throw new e.MissingClosingTagError(commentStartTag!)
                 //no tag found => add remaining contents as final token & return
                 if (contents != "") tokens.push(contents)
                 return tokens
@@ -552,6 +586,9 @@ function tokenize(contents: string, tagStart: string, tagEnd: string): d.Token[]
             next.tag.position = pos
             pos += tagStart.length + next.tag.contents.length + tagEnd.length
             next.tag.afterTagPosition = pos
+
+            if (next.tag.name == d.TagName.Comment) commentStartTag = next.tag
+            if (next.tag.name == d.TagName.EndComment) commentStartTag = null
 
             tokens.push(next.tag)
             contents = next.afterPart
@@ -573,10 +610,14 @@ function tokenize(contents: string, tagStart: string, tagEnd: string): d.Token[]
 }
 
 type NextTag = { beforePart: string, tag: d.Tag, afterPart: string }
-function nextTag(contents: string, tagStart: string, tagEnd: string): NextTag | null {
+function nextTag(contents: string, tagStart: string, tagEnd: string, inComment: boolean): NextTag | null {
     const ts = escapeRegExp(tagStart)
     const te = escapeRegExp(tagEnd)
-    const regex = new RegExp(`(.*?)${ts}([^${te}]+)${te}(.*)`, "s")
+    const eoc = escapeRegExp(d.TagName.EndComment)
+    const regex = inComment
+        ? new RegExp(`(.*?)${ts}(${eoc})${te}(.*)`, "s") //only look for «*/»
+        : new RegExp(`(.*?)${ts}((?:(?!${te}).)*)${te}(.*)`, "s")
+
     const parts = contents.match(regex)
 
     if (!parts) return null //no tag found
@@ -613,27 +654,33 @@ function nextTag(contents: string, tagStart: string, tagEnd: string): NextTag | 
 }
 
 function syntaxCheck(contents: string, tagStart: string, tagEnd: string) {
-    // should return null iff /^([^«»]*|«([^»]+)»)*$/g for (tagStart,tagEnd) = ("«","»")
     let tagStartPos: null | number = null
     let tagIsEmpty = false
 
-    for (let i = 0; i < contents.length; i++) {
+    let i = 0
+    while (i < contents.length) {
         if (tagStartPos != null) {
-            if (contents[i] == tagStart) {
+            if (contents.slice(i).startsWith(tagStart)) {                
                 throw new e.SyntaxUnexpectedTagStartError(i)
-            } else if (contents[i] == tagEnd) {
+            } else if (contents.slice(i).startsWith(tagEnd)) {
                 if (tagIsEmpty) throw new e.SyntaxEmptyTagError(i)
                 tagStartPos = null //tag ended
+                i += tagEnd.length
             } else {
                 tagIsEmpty = false
+                i++
             }
         } else {
-            if (contents[i] == tagStart) {
+            if (contents.slice(i).startsWith(tagStart)) {
                 //tag started
                 tagStartPos = i
                 tagIsEmpty = true
-            } else if (contents[i] == tagEnd) {
+                i += tagStart.length
+            } else if (contents.slice(i).startsWith(tagEnd)) {                
                 throw new e.SyntaxUnexpectedTagEndError(i)
+            } else {
+                //just a literal char
+                i += 1
             }
         }
     }
@@ -642,17 +689,17 @@ function syntaxCheck(contents: string, tagStart: string, tagEnd: string) {
         throw new e.SyntaxUnclosedTagError(tagStartPos)
 }
 
-//https://esdiscuss.org/topic/regexp-escape#content-7
-function escapeRegExp(str: string) {
-    return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")
-}
-
-function cut(str: string, separator: string): [string, string] {
-    const i = str.indexOf(separator)
-    if (i == -1) return [str, ""]
-    return [str.slice(0, i), str.slice(i + separator.length)]
-}
-
-function applyIf<T>(cond: boolean, f: (a: T) => T, x: T): T {
-    return cond ? f(x) : x
+function parseArgLiteral(arg: string, tag: d.Tag, parsed: boolean) {
+    try {
+        let x = arg.trim()
+        if (x[0] == "'" && x[x.length - 1] == "'") {
+            //replace single quotes with double quotes
+            //note: double quotes must be escaped by user, e.g. `'... \" ...'`
+            x = `"${x.slice(1, -1)}"`
+        }
+        const x2 = JSON.parse(x)  //check if literal is syntactically correct 
+        return parsed ? x2 : x
+    } catch (err) {
+        throw new e.IllegalLiteralError(tag, arg, err as Error)
+    }
 }
