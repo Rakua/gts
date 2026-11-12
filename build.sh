@@ -6,6 +6,11 @@ BIN_CMD="#!/bin/bash\nnode $SCRIPT_DIR/dist/main.js \"\$@\"\n"
 
 cd -- "$SCRIPT_DIR"
 
+echo "Install npm packages"
+cd src
+npm install
+cd ..
+
 echo "Generate tmpl0mod: node tmpl0-gen.js"
 node tmpl0-gen.js
 
